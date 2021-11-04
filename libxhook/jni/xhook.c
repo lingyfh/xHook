@@ -21,13 +21,14 @@
 
 // Created by caikelun on 2018-04-11.
 
+#include <stdint.h>
 #include "xh_core.h"
 #include "xhook.h"
 
 int xhook_register(const char *pathname_regex_str, const char *symbol,
-                   void *new_func, void **old_func)
+                   void* new_func, void **old_func, uintptr_t *base_addr)
 {
-    return xh_core_register(pathname_regex_str, symbol, new_func, old_func);
+    return xh_core_register(pathname_regex_str, symbol, new_func, old_func, base_addr);
 }
 
 int xhook_ignore(const char *pathname_regex_str, const char *symbol)

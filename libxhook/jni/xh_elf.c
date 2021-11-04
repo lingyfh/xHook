@@ -971,6 +971,14 @@ static int xh_elf_find_and_replace_func(xh_elf_t *self, const char *section,
     //do replace
     addr = self->bias_addr + r_offset;
     if(addr < self->base_addr) return XH_ERRNO_FORMAT;
+
+    //如果没有传新函数，则只找老符号，不修改
+    if (NULL == new_func) {
+        if(NULL != old_func) *old_func = *(void **)addr;
+
+        return 0;
+    }
+
     if(0 != (r = xh_elf_replace_function(self, symbol, addr, new_func, old_func)))
     {
         XH_LOG_ERROR("replace function failed: %s at %s\n", symbol, section);
@@ -995,7 +1003,9 @@ int xh_elf_hook(xh_elf_t *self, const char *symbol, void *new_func, void **old_f
         return XH_ERRNO_ELFINIT; //not inited?
     }
 
-    if(NULL == symbol || NULL == new_func) return XH_ERRNO_INVAL;
+    // If new_func is null, just found old func.
+//    if(NULL == symbol || NULL == new_func) return XH_ERRNO_INVAL;
+    if(NULL == symbol) return XH_ERRNO_INVAL;
 
     XH_LOG_INFO("hooking %s in %s\n", symbol, self->pathname);
     

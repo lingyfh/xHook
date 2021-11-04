@@ -51,6 +51,7 @@ typedef struct xh_core_hook_info
     char     *symbol;
     void     *new_func;
     void    **old_func;
+    uintptr_t *base_addr;
     TAILQ_ENTRY(xh_core_hook_info,) link;
 } xh_core_hook_info_t;
 typedef TAILQ_HEAD(xh_core_hook_info_queue, xh_core_hook_info,) xh_core_hook_info_queue_t;
@@ -135,12 +136,13 @@ static volatile int                xh_core_refresh_thread_do = 0;
 
 
 int xh_core_register(const char *pathname_regex_str, const char *symbol,
-                     void *new_func, void **old_func)
+                     void *new_func, void **old_func, uintptr_t *base_addr)
 {
     xh_core_hook_info_t *hi;
     regex_t              regex;
 
-    if(NULL == pathname_regex_str || NULL == symbol || NULL == new_func) return XH_ERRNO_INVAL;
+    if(NULL == pathname_regex_str || NULL == symbol) return XH_ERRNO_INVAL;
+//    if(NULL == pathname_regex_str || NULL == symbol || NULL == new_func) return XH_ERRNO_INVAL;
 
     if(xh_core_inited)
     {
@@ -167,7 +169,8 @@ int xh_core_register(const char *pathname_regex_str, const char *symbol,
     hi->pathname_regex = regex;
     hi->new_func = new_func;
     hi->old_func = old_func;
-    
+    hi->base_addr = base_addr;
+
     pthread_mutex_lock(&xh_core_mutex);
     TAILQ_INSERT_TAIL(&xh_core_hook_info, hi, link);
     pthread_mutex_unlock(&xh_core_mutex);
@@ -384,7 +387,9 @@ static void xh_core_refresh_impl()
         //check elf header format
         //We are trying to do ELF header checking as late as possible.
         if(0 != xh_core_check_elf_header(base_addr, pathname)) continue;
-        
+
+        if (hi->base_addr != NULL) *(hi->base_addr) = base_addr;
+
         //check existed map item
         mi_key.pathname = pathname;
         if(NULL != (mi = RB_FIND(xh_core_map_info_tree, &xh_core_map_info, &mi_key)))
